@@ -2,7 +2,8 @@
 
 **Sara Iqbal** | MSc Data Science | Quantitative Finance Portfolio Project
 
-[Live Dashboard](https://sara-iqbal.github.io/monte-carlo-model-risk) | [Google Colab Notebook](https://drive.google.com/file/d/16tSl2KdaiyPAalpxqCQ231DEaC7gNwWy/view?usp=sharing) | [LinkedIn](https://www.linkedin.com/in/saraiqbaldata0602/)
+[Live Dashboard]( https://sara-iqbal.github.io/Monte-Carlo-Option-Pricing-Engine-Model-Risk-Validation-Framework/
+) | [Google Colab Notebook](https://drive.google.com/file/d/16tSl2KdaiyPAalpxqCQ231DEaC7gNwWy/view?usp=sharing) | [LinkedIn](https://www.linkedin.com/in/saraiqbaldata0602/)
 
 ---
 
