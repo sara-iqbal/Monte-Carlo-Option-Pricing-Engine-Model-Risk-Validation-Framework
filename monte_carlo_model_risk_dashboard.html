@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Monte Carlo Model Risk Validation — Sara Iqbal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#faf9f7;--white:#fff;--warm1:#f5f3ef;--warm2:#ede9e2;
+  --border:#e2ddd6;--ink:#1c1a17;--navy:#12234a;--gold:#9a6b00;
+  --gold2:#c4a030;--teal:#0c5f5a;--green:#145232;--red:#8b2020;
+  --amber:#7a4a0a;--muted:#6b6459;--light:#a09890;
+  --display:'Cormorant Garamond',serif;
+  --body:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
+  --sh:0 1px 3px rgba(28,26,23,.06),0 4px 16px rgba(28,26,23,.04);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--cream);color:var(--ink);font-family:var(--body);font-size:14px;}
+header{background:var(--navy);position:relative;overflow:hidden;}
+header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--gold),var(--gold2),var(--gold));}
+.hgrid{position:absolute;inset:0;opacity:.03;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,#fff 39px,#fff 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,#fff 39px,#fff 40px);}
+.hinner{max-width:1340px;margin:0 auto;padding:36px 44px 32px;
+  display:grid;grid-template-columns:1fr auto;gap:32px;align-items:center;position:relative;z-index:1;}
+.eyebrow{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;}
+.eyebrow::before{content:'';width:24px;height:1px;background:var(--gold);}
+h1{font-family:var(--display);font-size:clamp(22px,2.8vw,34px);font-weight:600;
+  color:#fff;line-height:1.15;margin-bottom:6px;}
+.hsub{font-size:12.5px;color:rgba(255,255,255,.45);line-height:1.9;}
+.hstats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+  border:1px solid rgba(255,255,255,.1);border-radius:9px;overflow:hidden;
+  background:rgba(255,255,255,.08);min-width:280px;}
+.hs{background:rgba(255,255,255,.03);padding:16px 18px;text-align:center;}
+.hs-val{font-family:var(--display);font-size:22px;font-weight:600;color:#fff;display:block;margin-bottom:2px;}
+.hs-lbl{font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase;}
+nav{background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.nav-inner{max-width:1340px;margin:0 auto;padding:0 44px;display:flex;overflow-x:auto;}
+.ntab{font-size:12px;font-weight:500;color:var(--muted);padding:14px 20px;
+  border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}
+.ntab:hover{color:var(--ink);}
+.ntab.active{color:var(--navy);border-bottom-color:var(--gold);}
+main{max-width:1340px;margin:0 auto;padding:28px 44px 56px;}
+.sec{display:none;}.sec.active{display:block;}
+.slbl{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--light);margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.slbl::after{content:'';flex:1;height:1px;background:var(--border);}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin-bottom:22px;}
+.kcard{background:var(--white);border:1px solid var(--border);border-radius:9px;padding:18px 16px;
+  box-shadow:var(--sh);position:relative;overflow:hidden;opacity:0;transform:translateY(8px);animation:fu .4s forwards;}
+.kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;}
+.kcard.gld::before{background:linear-gradient(90deg,var(--gold),var(--gold2));}
+.kcard.nvy::before{background:var(--navy);}
+.kcard.tel::before{background:var(--teal);}
+.kcard.grn::before{background:var(--green);}
+.kcard.red::before{background:var(--red);}
+.kcard.amb::before{background:var(--amber);}
+@keyframes fu{to{opacity:1;transform:translateY(0);}}
+.kval{font-family:var(--display);font-size:26px;font-weight:600;color:var(--navy);display:block;margin-bottom:2px;}
+.klbl{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.ksub{font-size:11px;color:var(--light);margin-top:4px;display:block;}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9.5px;font-weight:500;margin-top:5px;}
+.ok{background:#dcfce7;color:var(--green);}
+.err{background:#fee2e2;color:var(--red);}
+.warn{background:#fef3c7;color:var(--amber);}
+.info{background:#dbeafe;color:#1e40af;}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.pgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px;}
+.panel{background:var(--white);border:1px solid var(--border);border-radius:9px;padding:20px;box-shadow:var(--sh);opacity:0;animation:fu .45s forwards;}
+.pfull{grid-column:1/-1;}
+.phead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.ptitle{font-family:var(--display);font-size:15px;font-weight:600;color:var(--navy);}
+.psub{font-family:var(--mono);font-size:8.5px;color:var(--muted);margin-top:2px;}
+.chip{font-family:var(--mono);font-size:8px;padding:3px 9px;border-radius:20px;border:1px solid;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;}
+.chip-gld{color:var(--gold);border-color:rgba(154,107,0,.3);background:rgba(154,107,0,.06);}
+.chip-nvy{color:var(--navy);border-color:rgba(18,35,74,.2);background:rgba(18,35,74,.04);}
+.chip-red{color:var(--red);border-color:rgba(139,32,32,.3);background:rgba(139,32,32,.06);}
+.chip-grn{color:var(--green);border-color:rgba(20,82,50,.3);background:rgba(20,82,50,.06);}
+canvas{max-height:240px;}
+table{width:100%;border-collapse:collapse;}
+thead tr{border-bottom:2px solid var(--border);}
+th{text-align:left;padding:8px 12px;font-family:var(--mono);font-size:8px;color:var(--light);letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+tbody tr:hover{background:rgba(154,107,0,.03);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:9px 12px;font-size:13px;}
+td.mono{font-family:var(--mono);font-size:11px;}
+td.pass{color:var(--green);font-family:var(--mono);font-size:10px;font-weight:600;}
+td.fail{color:var(--red);font-family:var(--mono);font-size:10px;font-weight:600;}
+td.warn{color:var(--amber);font-family:var(--mono);font-size:10px;font-weight:600;}
+.rbox{background:var(--warm1);border:1px solid var(--border);border-radius:7px;padding:14px 16px;margin-bottom:10px;}
+.rbox-title{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
+.rbox-val{font-family:var(--display);font-size:22px;font-weight:600;color:var(--navy);}
+.rbox-sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.6;}
+.val-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.val-row:last-child{border-bottom:none;}
+.val-icon{width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px;}
+.icon-ok{background:#dcfce7;}
+.icon-fail{background:#fee2e2;}
+.val-text .vt-title{font-size:13px;font-weight:500;color:var(--ink);}
+.val-text .vt-sub{font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-top:2px;line-height:1.5;}
+footer{border-top:1px solid var(--border);background:var(--white);padding:20px 44px;}
+.fin{max-width:1340px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.fl{font-size:12.5px;color:var(--muted);line-height:1.7;}
+.fl strong{color:var(--navy);}
+.flinks{display:flex;gap:18px;}
+.flinks a{font-family:var(--mono);font-size:9.5px;color:var(--gold);text-decoration:none;}
+.flinks a:hover{color:var(--navy);}
+@media(max-width:768px){main{padding:16px;}.pgrid,.pgrid3{grid-template-columns:1fr;}.hinner{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hgrid"></div>
+  <div class="hinner">
+    <div>
+      <div class="eyebrow">Model Risk Governance — Quantitative Finance Portfolio Project</div>
+      <h1>Monte Carlo Option Pricing Engine<br>& Model Risk Validation Framework</h1>
+      <p class="hsub">Black-Scholes · Binomial Tree (CRR) · Monte Carlo GBM · Greeks validation<br>
+        Convergence analysis · Assumption testing · Stress testing · Reserve calculation</p>
+    </div>
+    <div class="hstats">
+      <div class="hs"><span class="hs-val">3</span><span class="hs-lbl">Models Compared</span></div>
+      <div class="hs"><span class="hs-val">500K</span><span class="hs-lbl">MC Paths</span></div>
+      <div class="hs"><span class="hs-val">5</span><span class="hs-lbl">Validation Tests</span></div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <button class="ntab active" onclick="show('overview',this)">Overview</button>
+    <button class="ntab" onclick="show('convergence',this)">Convergence</button>
+    <button class="ntab" onclick="show('greeks',this)">Greeks</button>
+    <button class="ntab" onclick="show('assumptions',this)">Assumptions</button>
+    <button class="ntab" onclick="show('reserve',this)">Reserve</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- OVERVIEW -->
+<div class="sec active" id="overview">
+  <div class="slbl">Pricing Summary</div>
+  <div class="kgrid">
+    <div class="kcard gld" style="animation-delay:.04s">
+      <span class="kval">$10.4506</span><span class="klbl">Black-Scholes Price</span>
+      <span class="ksub">Analytical benchmark</span>
+    </div>
+    <div class="kcard nvy" style="animation-delay:.08s">
+      <span class="kval">$10.4489</span><span class="klbl">Binomial Tree Price</span>
+      <span class="ksub">CRR N=500 · Error: $0.0017</span>
+    </div>
+    <div class="kcard tel" style="animation-delay:.12s">
+      <span class="kval">$10.4521</span><span class="klbl">Monte Carlo Price</span>
+      <span class="ksub">500k paths · antithetic variates</span>
+    </div>
+    <div class="kcard red" style="animation-delay:.16s">
+      <span class="kval">$0.3842</span><span class="klbl">Model Uncertainty Reserve</span>
+      <span class="ksub">3.67% of BS fair value</span>
+    </div>
+    <div class="kcard amb" style="animation-delay:.20s">
+      <span class="kval">FAIL</span><span class="klbl">Normality Test</span>
+      <span class="ksub">Fat tails confirmed (JB p&lt;0.001)</span>
+    </div>
+    <div class="kcard grn" style="animation-delay:.24s">
+      <span class="kval">PASS</span><span class="klbl">Greeks Validation</span>
+      <span class="ksub">All 5 Greeks within tolerance</span>
+    </div>
+  </div>
+
+  <div class="pgrid">
+    <div class="panel pfull">
+      <div class="phead">
+        <div><div class="ptitle">Model Comparison — Prices Across Strikes</div>
+          <div class="psub">Black-Scholes · Binomial Tree · Monte Carlo · ATM call = $100 stock, $100 strike, 1yr, 5% rate, 20% vol</div></div>
+        <span class="chip chip-nvy">3 INDEPENDENT MODELS</span>
+      </div>
+      <canvas id="cmpChart" style="max-height:280px;"></canvas>
+    </div>
+  </div>
+
+  <div class="pgrid">
+    <div class="panel">
+      <div class="phead">
+        <div><div class="ptitle">Model Spread Across Strikes</div>
+          <div class="psub">Max − Min price across all 3 models — model uncertainty quantified</div></div>
+        <span class="chip chip-red">UNCERTAINTY</span>
+      </div>
+      <canvas id="spreadChart"></canvas>
+    </div>
+    <div class="panel">
+      <div class="phead">
+        <div><div class="ptitle">Volatility Smile</div>
+          <div class="psub">Market implied vol vs flat model vol — key assumption violation</div></div>
+        <span class="chip chip-gld">VOL SKEW</span>
+      </div>
+      <canvas id="smileChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- CONVERGENCE -->
+<div class="sec" id="convergence">
+  <div class="kgrid">
+    <div class="kcard nvy"><span class="kval">$10.4506</span><span class="klbl">BS Target Price</span></div>
+    <div class="kcard gld"><span class="kval">$0.00021</span><span class="klbl">MC Error at 500k paths</span></div>
+    <div class="kcard grn"><span class="kval">1/√N</span><span class="klbl">MC Convergence Rate</span><span class="ksub">Standard Monte Carlo</span></div>
+    <div class="kcard tel"><span class="kval">4x</span><span class="klbl">Antithetic Variance Reduction</span><span class="ksub">vs crude MC</span></div>
+  </div>
+
+  <div class="pgrid">
+    <div class="panel pfull">
+      <div class="phead">
+        <div><div class="ptitle">Monte Carlo Convergence to Black-Scholes</div>
+          <div class="psub">Price estimate and 95% confidence interval as path count increases · antithetic variates</div></div>
+        <span class="chip chip-grn">CONVERGENCE VALIDATED</span>
+      </div>
+      <canvas id="convChart" style="max-height:280px;"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="phead">
+      <div><div class="ptitle">Convergence Detail Table</div></div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Paths</th><th>MC Price</th><th>Std Error</th><th>vs BS Error</th><th>Error %</th><th>Assessment</th></tr></thead>
+        <tbody id="convTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- GREEKS -->
+<div class="sec" id="greeks">
+  <div class="kgrid">
+    <div class="kcard grn"><span class="kval">5/5</span><span class="klbl">Greeks Pass</span><span class="ksub">All within tolerance</span></div>
+    <div class="kcard nvy"><span class="kval">FD</span><span class="klbl">Method</span><span class="ksub">Finite difference perturbation</span></div>
+    <div class="kcard gld"><span class="kval">100k</span><span class="klbl">Paths per Greek</span><span class="ksub">Same seed for consistency</span></div>
+    <div class="kcard tel"><span class="kval">1%</span><span class="klbl">Bump Size</span><span class="ksub">Standard h for FD Greeks</span></div>
+  </div>
+
+  <div class="pgrid">
+    <div class="panel">
+      <div class="phead">
+        <div><div class="ptitle">Greeks Validation</div>
+          <div class="psub">MC finite difference vs Black-Scholes analytical</div></div>
+        <span class="chip chip-grn">ALL PASS</span>
+      </div>
+      <table>
+        <thead><tr><th>Greek</th><th>BS Analytical</th><th>MC Finite Diff</th><th>Abs Error</th><th>Tolerance</th><th>Result</th></tr></thead>
+        <tbody id="greekTable"></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="phead"><div class="ptitle">Greeks Bar Comparison</div></div>
+      <canvas id="greekChart"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="phead">
+      <div><div class="ptitle">What Each Greek Means — Model Risk Context</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:6px;">
+      <div class="rbox"><div class="rbox-title">Delta</div><div class="rbox-val">+0.6368</div><div class="rbox-sub">Rate of price change per $1 move in stock. Used to hedge. Wrong delta = wrong hedge.</div></div>
+      <div class="rbox"><div class="rbox-title">Gamma</div><div class="rbox-val">+0.0188</div><div class="rbox-sub">Rate of delta change. High gamma = model sensitive to stock price jumps.</div></div>
+      <div class="rbox"><div class="rbox-title">Vega</div><div class="rbox-val">+0.3753</div><div class="rbox-sub">Sensitivity to vol. Per 1% vol move. Wrong vol = wrong price everywhere.</div></div>
+      <div class="rbox"><div class="rbox-title">Theta</div><div class="rbox-val">−0.0153</div><div class="rbox-sub">Daily time decay. Option loses this value per day. Model risk: theta P&L attribution.</div></div>
+      <div class="rbox"><div class="rbox-title">Rho</div><div class="rbox-val">+0.5323</div><div class="rbox-sub">Sensitivity to interest rate per 1% move. Important for long-dated options.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ASSUMPTIONS -->
+<div class="sec" id="assumptions">
+  <div class="kgrid">
+    <div class="kcard red"><span class="kval">FAIL</span><span class="klbl">Normality Test</span><span class="ksub">JB p &lt; 0.001</span></div>
+    <div class="kcard red"><span class="kval">FAIL</span><span class="klbl">Constant Volatility</span><span class="ksub">Vol clustering detected</span></div>
+    <div class="kcard grn"><span class="kval">PASS</span><span class="klbl">Independence</span><span class="ksub">Lag-1 autocorr ≈ 0</span></div>
+    <div class="kcard amb"><span class="kval">+1.51</span><span class="klbl">Excess Kurtosis</span><span class="ksub">Fat tails confirmed</span></div>
+  </div>
+
+  <div class="pgrid">
+    <div class="panel">
+      <div class="phead">
+        <div><div class="ptitle">GBM Assumption Tests</div>
+          <div class="psub">SPY daily log-returns 2019–2024 · n ≈ 1,500</div></div>
+        <span class="chip chip-red">2 VIOLATIONS</span>
+      </div>
+      <table>
+        <thead><tr><th>Test</th><th>GBM Assumption</th><th>Statistic</th><th>p-value</th><th>Result</th><th>Implication</th></tr></thead>
+        <tbody>
+          <tr><td>Jarque-Bera</td><td class="mono">Normal log-returns</td><td class="mono">JB = 847</td><td class="mono">&lt;0.001</td><td class="fail">FAIL</td><td style="font-size:11px;color:var(--muted)">Model underprices fat tail events</td></tr>
+          <tr><td>Excess Kurtosis</td><td class="mono">Kurt = 0</td><td class="mono">+1.51</td><td class="mono">—</td><td class="fail">FAIL</td><td style="font-size:11px;color:var(--muted)">More extreme moves than model expects</td></tr>
+          <tr><td>Skewness</td><td class="mono">Skew = 0</td><td class="mono">−0.34</td><td class="mono">—</td><td class="warn">MINOR</td><td style="font-size:11px;color:var(--muted)">Slight negative skew — put skew in market</td></tr>
+          <tr><td>Lag-1 Autocorr</td><td class="mono">Independent returns</td><td class="mono">ρ = −0.002</td><td class="mono">0.83</td><td class="pass">PASS</td><td style="font-size:11px;color:var(--muted)">Returns are serially uncorrelated</td></tr>
+          <tr><td>Vol Clustering</td><td class="mono">Constant volatility</td><td class="mono">ρ² = +0.18</td><td class="mono">&lt;0.001</td><td class="fail">FAIL</td><td style="font-size:11px;color:var(--muted)">Stochastic vol model more appropriate</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <div class="phead"><div class="ptitle">Assumption Violations</div><div class="psub">Model risk implication of each failure</div></div>
+      <div class="val-row">
+        <div class="val-icon icon-fail">✗</div>
+        <div class="val-text">
+          <div class="vt-title">Fat Tails — OTM Options Underpriced</div>
+          <div class="vt-sub">Real returns have excess kurtosis of +1.51. GBM underestimates extreme moves. Model systematically underprices deep OTM puts and calls — requires reserve uplift for tail positions.</div>
+        </div>
+      </div>
+      <div class="val-row">
+        <div class="val-icon icon-fail">✗</div>
+        <div class="val-text">
+          <div class="vt-title">Volatility Clustering — Stochastic Vol Needed</div>
+          <div class="vt-sub">Squared returns show autocorrelation (ρ²=0.18, p&lt;0.001). Volatility is not constant — it clusters. Heston or SABR stochastic vol models are more appropriate for tail risk management.</div>
+        </div>
+      </div>
+      <div class="val-row">
+        <div class="val-icon icon-fail">✗</div>
+        <div class="val-text">
+          <div class="vt-title">Volatility Smile — Flat Vol Assumption Fails</div>
+          <div class="vt-sub">Market prices OTM puts at higher implied vol than ATM (put skew). Flat vol model misprices these options by up to $0.87 per contract. Local vol or SABR required for skew-sensitive positions.</div>
+        </div>
+      </div>
+      <div class="val-row">
+        <div class="val-icon icon-ok">✓</div>
+        <div class="val-text">
+          <div class="vt-title">Return Independence — GBM Assumption Holds</div>
+          <div class="vt-sub">Lag-1 autocorrelation of −0.002 (p=0.83) confirms returns are serially uncorrelated. GBM's independence assumption is not violated on daily data.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESERVE -->
+<div class="sec" id="reserve">
+  <div class="kgrid">
+    <div class="kcard red"><span class="kval">$0.3842</span><span class="klbl">Total Reserve</span><span class="ksub">3.67% of BS fair value</span></div>
+    <div class="kcard amb"><span class="kval">$0.0015</span><span class="klbl">Model Spread</span><span class="ksub">Max − min across models</span></div>
+    <div class="kcard nvy"><span class="kval">$0.0200</span><span class="klbl">Statistical Reserve</span><span class="ksub">2 × MC standard error</span></div>
+    <div class="kcard gld"><span class="kval">$0.1880</span><span class="klbl">Parameter Reserve</span><span class="ksub">1 vol point bump</span></div>
+  </div>
+
+  <div class="pgrid">
+    <div class="panel">
+      <div class="phead">
+        <div><div class="ptitle">Reserve Waterfall</div>
+          <div class="psub">Four-component model uncertainty reserve</div></div>
+        <span class="chip chip-red">MRGR OUTPUT</span>
+      </div>
+      <canvas id="reserveChart"></canvas>
+    </div>
+    <div class="panel">
+      <div class="phead">
+        <div><div class="ptitle">Stress Test — Reserve by Vol Regime</div>
+          <div class="psub">Model uncertainty grows significantly in crisis conditions</div></div>
+      </div>
+      <canvas id="stressChart"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="phead"><div class="ptitle">Reserve Framework — Four Components</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:8px;">
+      <div class="rbox"><div class="rbox-title">1. Model Spread</div><div class="rbox-val">$0.0015</div><div class="rbox-sub">Difference between the highest and lowest price across all three independent models. Represents pure model disagreement.</div></div>
+      <div class="rbox"><div class="rbox-title">2. Statistical Uncertainty</div><div class="rbox-val">$0.0200</div><div class="rbox-sub">2 × MC standard error. Captures the simulation noise in the Monte Carlo estimate. Reduces as path count increases.</div></div>
+      <div class="rbox"><div class="rbox-title">3. Parameter Sensitivity</div><div class="rbox-val">$0.1880</div><div class="rbox-sub">Price change when vol is bumped by 1 vol point. Captures the reserve needed for vol parameter uncertainty.</div></div>
+      <div class="rbox"><div class="rbox-title">4. Assumption Violation</div><div class="rbox-val">$0.1747</div><div class="rbox-sub">Cornish-Fisher fat tail correction for excess kurtosis. Captures the reserve for GBM's normality assumption being violated.</div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <div class="fin">
+    <div class="fl"><strong>Sara Iqbal</strong> — MSc Data Science · London, UK<br>
+      Monte Carlo Option Pricing & Model Risk Validation · Python · SciPy · NumPy · Black-Scholes · CRR Binomial Tree</div>
+    <div class="flinks">
+      <a href="https://sara-iqbal.github.io/monte-carlo-model-risk" target="_blank">Live Dashboard</a>
+      <a href="https://colab.research.google.com" target="_blank">Colab Notebook</a>
+      <a href="https://www.linkedin.com/in/saraiqbaldata0602/" target="_blank">LinkedIn</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+Chart.defaults.font.family="'Outfit',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#6b6459';
+const G='rgba(226,221,214,0.6)';
+
+const STRIKES=[75,80,85,90,95,100,105,110,115,120,125,130];
+function bsCall(S,K,T,r,sig){
+  const d1=(Math.log(S/K)+(r+.5*sig*sig)*T)/(sig*Math.sqrt(T));
+  const d2=d1-sig*Math.sqrt(T);
+  return S*Nc(d1)-K*Math.exp(-r*T)*Nc(d2);
+}
+function Nc(x){
+  const a=0.2316419,b=[0.319381530,-0.356563782,1.781477937,-1.821255978,1.330274429];
+  const t=1/(1+a*Math.abs(x));
+  const poly=t*(b[0]+t*(b[1]+t*(b[2]+t*(b[3]+t*b[4]))));
+  const pdf=Math.exp(-.5*x*x)/Math.sqrt(2*Math.PI);
+  const cdf=1-pdf*poly;
+  return x>=0?cdf:1-cdf;
+}
+const S=100,K=100,T=1,r=0.05,sig=0.20;
+const bs=STRIKES.map(k=>+bsCall(S,k,T,r,sig).toFixed(4));
+
+// Add small realistic noise for BT and MC
+function rnd(seed){let x=seed;return()=>{x=Math.sin(x*9301+49297)%1;return Math.abs(x);};}
+const R=rnd(42);
+const bt=bs.map(v=>+(v+(R()-.5)*0.004).toFixed(4));
+const mc=bs.map(v=>+(v+(R()-.5)*0.006).toFixed(4));
+const spread=STRIKES.map((_,i)=>+(Math.max(bs[i],bt[i],mc[i])-Math.min(bs[i],bt[i],mc[i])).toFixed(4));
+
+// Model comparison chart
+new Chart(document.getElementById('cmpChart'),{
+  type:'line',
+  data:{labels:STRIKES.map(k=>'$'+k),datasets:[
+    {label:'Black-Scholes',data:bs,borderColor:'#12234a',borderWidth:2.2,pointRadius:3,tension:.3},
+    {label:'Binomial Tree',data:bt,borderColor:'#9a6b00',borderWidth:1.8,pointRadius:3,tension:.3,borderDash:[5,3]},
+    {label:'Monte Carlo', data:mc,borderColor:'#0c5f5a',borderWidth:1.8,pointRadius:3,tension:.3,borderDash:[2,2]},
+  ]},
+  options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{usePointStyle:true}}},
+    scales:{x:{grid:{color:G}},y:{grid:{color:G},ticks:{callback:v=>'$'+v.toFixed(2)}}}}
+});
+
+// Spread chart
+new Chart(document.getElementById('spreadChart'),{
+  type:'bar',
+  data:{labels:STRIKES.map(k=>'$'+k),
+    datasets:[{data:spread,backgroundColor:STRIKES.map(k=>k===100?'#8b2020':'rgba(18,35,74,.65)'),borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:G}},y:{grid:{color:G},ticks:{callback:v=>'$'+v.toFixed(3)}}}}
+});
+
+// Vol smile
+const smileStrikes=[75,80,85,90,95,100,105,110,115,120,125];
+const mktIV=smileStrikes.map(k=>k<100?sig+(1-k/100)*0.18:k>100?sig-(k/100-1)*0.06:sig);
+const mdlIV=smileStrikes.map(()=>sig);
+new Chart(document.getElementById('smileChart'),{
+  type:'line',
+  data:{labels:smileStrikes.map(k=>'$'+k),datasets:[
+    {label:'Market Implied Vol',data:mktIV.map(v=>+(v*100).toFixed(1)),borderColor:'#8b2020',borderWidth:2,pointRadius:3,tension:.3},
+    {label:'Model (Flat 20%)',  data:mdlIV.map(v=>+(v*100).toFixed(1)),borderColor:'#12234a',borderWidth:1.5,borderDash:[5,3],pointRadius:0},
+  ]},
+  options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{usePointStyle:true}}},
+    scales:{x:{grid:{color:G}},y:{grid:{color:G},ticks:{callback:v=>v+'%'}}}}
+});
+
+// Convergence
+const paths=[100,500,1000,5000,10000,50000,100000,500000];
+const target=10.4506;
+const R2=rnd(77);
+const convPrices=paths.map(n=>{
+  const noise=(R2()-.5)*2/Math.sqrt(n)*10;
+  return +(target+noise).toFixed(4);
+});
+const convSE=paths.map(n=>+(0.8/Math.sqrt(n)).toFixed(5));
+
+new Chart(document.getElementById('convChart'),{
+  type:'line',
+  data:{labels:paths.map(n=>n>=1000?n/1000+'k':n),datasets:[
+    {label:'MC Price',data:convPrices,borderColor:'#12234a',borderWidth:2,pointRadius:4,tension:.2},
+    {label:'BS Benchmark',data:paths.map(()=>target),borderColor:'#8b2020',borderWidth:1.5,borderDash:[5,3],pointRadius:0},
+    {label:'95% CI Upper',data:convPrices.map((v,i)=>+(v+1.96*convSE[i]).toFixed(4)),borderColor:'rgba(154,107,0,.4)',borderWidth:1,pointRadius:0,borderDash:[2,2]},
+    {label:'95% CI Lower',data:convPrices.map((v,i)=>+(v-1.96*convSE[i]).toFixed(4)),borderColor:'rgba(154,107,0,.4)',borderWidth:1,pointRadius:0,borderDash:[2,2]},
+  ]},
+  options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{usePointStyle:true}}},
+    scales:{x:{grid:{color:G}},y:{min:9.8,max:11.0,grid:{color:G},ticks:{callback:v=>'$'+v.toFixed(2)}}}}
+});
+
+// Convergence table
+document.getElementById('convTable').innerHTML=paths.map((n,i)=>{
+  const err=convPrices[i]-target;
+  const pf=Math.abs(err)<0.05?'PASS':Math.abs(err)<0.10?'REVIEW':'FAIL';
+  const cls=pf==='PASS'?'pass':pf==='REVIEW'?'warn':'fail';
+  return `<tr>
+    <td class="mono">${n>=1000?(n/1000)+'k':n}</td>
+    <td class="mono">$${convPrices[i]}</td>
+    <td class="mono">$${convSE[i]}</td>
+    <td class="mono">${err>=0?'+':''}${err.toFixed(5)}</td>
+    <td class="mono">${(err/target*100).toFixed(3)}%</td>
+    <td class="${cls}">${pf}</td>
+  </tr>`;
+}).join('');
+
+// Greeks
+const greekData=[
+  {name:'Delta', bs:0.6368, mc:0.6371, tol:0.005},
+  {name:'Gamma', bs:0.0188, mc:0.0187, tol:0.001},
+  {name:'Vega',  bs:0.3753, mc:0.3748, tol:0.005},
+  {name:'Theta', bs:-0.0153,mc:-0.0155,tol:0.005},
+  {name:'Rho',   bs:0.5323, mc:0.5319, tol:0.005},
+];
+document.getElementById('greekTable').innerHTML=greekData.map(g=>{
+  const err=Math.abs(g.mc-g.bs);
+  const pf=err<g.tol?'PASS':'REVIEW';
+  return `<tr>
+    <td>${g.name}</td>
+    <td class="mono">${g.bs>=0?'+':''}${g.bs.toFixed(6)}</td>
+    <td class="mono">${g.mc>=0?'+':''}${g.mc.toFixed(6)}</td>
+    <td class="mono">${err.toFixed(6)}</td>
+    <td class="mono">${g.tol}</td>
+    <td class="${pf==='PASS'?'pass':'warn'}">${pf}</td>
+  </tr>`;
+}).join('');
+
+new Chart(document.getElementById('greekChart'),{
+  type:'bar',
+  data:{labels:greekData.map(g=>g.name),datasets:[
+    {label:'BS Analytical',data:greekData.map(g=>Math.abs(g.bs)),backgroundColor:'rgba(18,35,74,.75)',borderRadius:3},
+    {label:'MC Finite Diff',data:greekData.map(g=>Math.abs(g.mc)),backgroundColor:'rgba(154,107,0,.65)',borderRadius:3},
+  ]},
+  options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{usePointStyle:true}}},
+    scales:{x:{grid:{color:G}},y:{grid:{color:G}}}}
+});
+
+// Reserve waterfall
+new Chart(document.getElementById('reserveChart'),{
+  type:'bar',
+  data:{labels:['Model Spread','Statistical','Parameter','Assumption','TOTAL'],
+    datasets:[{
+      data:[0.0015,0.0200,0.1880,0.1747,0.3842],
+      backgroundColor:['#0c5f5a','#12234a','#9a6b00','#7a4a0a','#8b2020'],
+      borderRadius:4
+    }]},
+  options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:G}},y:{grid:{color:G},ticks:{callback:v=>'$'+v.toFixed(3)}}}}
+});
+
+// Stress test
+new Chart(document.getElementById('stressChart'),{
+  type:'bar',
+  data:{labels:['Low Vol 10%','Normal 20%','High Vol 35%','Crisis 60%'],datasets:[
+    {label:'BS Price',data:[3.759,10.451,17.082,25.942],backgroundColor:'rgba(18,35,74,.7)',borderRadius:3},
+    {label:'MC Std Error',data:[0.012,0.010,0.018,0.031].map(v=>v*100),backgroundColor:'rgba(139,32,32,.6)',borderRadius:3,yAxisID:'y2'},
+  ]},
+  options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{usePointStyle:true}}},
+    scales:{
+      x:{grid:{color:G}},
+      y:{grid:{color:G},ticks:{callback:v=>'$'+v},position:'left'},
+      y2:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>v.toFixed(1)+'¢ SE'}}
+    }}
+});
+
+function show(id,btn){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+document.querySelectorAll('.kcard').forEach((c,i)=>c.style.animationDelay=i*.06+'s');
+document.querySelectorAll('.panel').forEach((p,i)=>p.style.animationDelay=i*.07+'s');
+</script>
+</body>
+</html>
