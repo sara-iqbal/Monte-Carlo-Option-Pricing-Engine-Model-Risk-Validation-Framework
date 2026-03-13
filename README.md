@@ -2,7 +2,7 @@
 
 **Sara Iqbal** | MSc Data Science | Quantitative Finance Portfolio Project
 
-[Live Dashboard](https://sara-iqbal.github.io/monte-carlo-model-risk) | [Google Colab Notebook](https://colab.research.google.com/drive/YOUR_COLAB_LINK) | [LinkedIn](https://www.linkedin.com/in/saraiqbaldata0602/)
+[Live Dashboard](https://sara-iqbal.github.io/monte-carlo-model-risk) | [Google Colab Notebook](https://drive.google.com/file/d/16tSl2KdaiyPAalpxqCQ231DEaC7gNwWy/view?usp=sharing) | [LinkedIn](https://www.linkedin.com/in/saraiqbaldata0602/)
 
 ---
 
@@ -173,15 +173,3 @@ monte-carlo-model-risk/
     monte_carlo_model_risk.ipynb        — Google Colab notebook (12 steps)
     README.md                           — this file
 ```
-
----
-
-## Other Projects
-
-| Project | Tools | Key Result |
-|---|---|---|
-| ML Equity Long/Short Signal Engine | Python, XGBoost, SHAP | Sharpe 1.17 vs S&P 500 0.81 · IR 0.72 |
-| Real-Time Fraud Detection | Python, XGBoost, SHAP | ROC-AUC 97.4% · F1 82.1% |
-| Bond Index Replication Engine | Python, SciPy SLSQP | Tracking error 8.4 bps · IR 0.87 |
-| Revenue Accrual & Fee Reconciliation | Python, Pandas, openpyxl | 1,080 monthly calculations · 99.7% accuracy |
-| Alternatives Fund Investor Lifecycle | Python, Pandas, Chart.js | 50 investors · 8 jurisdictions · $500M fund |
